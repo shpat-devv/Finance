@@ -37,11 +37,26 @@ def index():
     return render_template("index.html")
 
 
+
+#calculate the price, check if user can buy, add to database
 @app.route("/buy", methods=["GET", "POST"])
 @login_required
 def buy():
-    """Buy shares of stock"""
-    return apology("TODO")
+    if request.method == "POST":
+        #add error handling 
+        if request.form.get("symbol") and request.form.get("shares") and int(request.form.get("shares")) > 0:
+            cost = lookup(request.form.get("symbol"))["price"] * int(request.form.get("shares"))
+            user = db.find_user(session["user_id"], "id")
+
+            if cost > int(user[0]["cash"]):
+                return apology("you dont have enough money")
+            
+
+            return redirect("/")
+        else:
+            print(request.form.get("symbol"), request.form.get("shares"))
+            return apology("form not filled correctly")
+    return render_template("buy.html")
 
 
 @app.route("/history")
@@ -63,7 +78,7 @@ def login():
         elif not request.form.get("password"):
             return apology("must provide password", 403)
 
-        rows = db.find_user(request.form.get("username"))
+        rows = db.find_user(request.form.get("username"), "username") #actual username and table name
 
         if len(rows) != 1 or not check_password_hash(
             rows[0]["hash"], request.form.get("password")
@@ -109,7 +124,7 @@ def register():
         elif not request.form.get("password"):
             return apology("must provide password", 403)
         
-        if db.find_user(request.form.get("username")):
+        if db.find_user(request.form.get("username"), "username"):
             return apology("username already exists", 403)
 
         #users by default start with 10k in cash

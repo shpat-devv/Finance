@@ -23,13 +23,13 @@ class Database:
         else: 
             print("No connection")
 
-    def find_user(self, username):
+    def find_user(self, value, table):
         if not self.connection:
             print("Not connected to any database.")
             return
         
-        query = f"SELECT * FROM users WHERE username = ?"
-        res = self.cursor.execute(query, (username,))
+        query = f"SELECT * FROM users WHERE {table} = ?"
+        res = self.cursor.execute(query, (value,))
         return res.fetchall()
 
     def insert_user(self, username, hash): 
