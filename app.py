@@ -52,9 +52,9 @@ def buy():
                 return apology("you dont have enough money")
             
             db.update_user(session["user_id"], "cash", int(user[0]["cash"]) - cost)
-            
+
             stock_data = lookup(request.form.get("symbol"))
-            db.insert_stock(stock_data["name"], stock_data["price"], stock_data["symbol"], session["user_id"])
+            db.insert_stock(stock_data["name"], stock_data["price"], stock_data["symbol"], request.form.get("shares"), session["user_id"])
         
             return redirect("/")
         else:
@@ -66,7 +66,7 @@ def buy():
 @app.route("/history")
 @login_required
 def history():
-    """Show history of transactions"""
+    """Show name of stock, how many stocks the user purchased, the current price of the stock, the total value and the users money balance"""
     return apology("TODO")
 
 

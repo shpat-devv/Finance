@@ -49,14 +49,20 @@ class Database:
         query = f"UPDATE users SET {row} = ? WHERE id = ?"
         self.cursor.execute(query, (new_value, id))
 
-    def insert_stock(self, name, price, symbol, user_id): #i could've made a function that can insert into both the users and the stocks table but eh, maybe later
+    def insert_stock(self, name, price, symbol, shares, user_id): #i could've made a function that can insert into both the users and the stocks table but eh, maybe later
         if not self.connection:
             print("Not connected to any database")
             return
-        query = "INSERT INTO stocks (name, price, symbol, user_id) VALUES (?, ?, ?, ?)"
-        self.cursor.execute(query, (name, price, symbol, user_id)) 
+        query = "INSERT INTO stocks (name, price, symbol, shares, user_id) VALUES (?, ?, ?, ?, ?)"
+        self.cursor.execute(query, (name, price, symbol, shares, user_id)) 
         self.connection.commit()
-        print("Inserted {name} into database")
+        print(f"Inserted {name} into database")
+
+    def get_stocks(self, user_id):
+        if not self.connection:
+            print("Not connected to any database")
+            return
+        query = "FROM stocks SELECT "
 
     def delete(self, id, table):
         if not self.connection:
