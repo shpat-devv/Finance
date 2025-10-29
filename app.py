@@ -51,7 +51,11 @@ def buy():
             if cost > int(user[0]["cash"]):
                 return apology("you dont have enough money")
             
-
+            db.update_user(session["user_id"], "cash", int(user[0]["cash"]) - cost)
+            
+            stock_data = lookup(request.form.get("symbol"))
+            db.insert_stock(stock_data["name"], stock_data["price"], stock_data["symbol"], session["user_id"])
+        
             return redirect("/")
         else:
             print(request.form.get("symbol"), request.form.get("shares"))
