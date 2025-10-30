@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Sell
+{% endblock %}
+
+{% block main %}
+    {% if symbols %}
+        <div class="container mt-4">
+            <h2>Sell Stocks</h2>
+            <form action="/sell" method="post">
+                <select name="symbol" class="form-select mb-3" required>
+                    <option value="" disabled selected>Select a stock</option>
+                    {% for symbol in symbols %}
+                        <option value="{{ symbol }}">{{ symbol }}</option>
+                    {% endfor %}
+                </select>
+
+                <button type="submit" class="btn btn-primary">Sell</button>
+            </form>
+        </div>
+    {% else %}
+        <div class="container mt-4">
+            <h2>You haven't purchased anything yet</h2>
+        </div>
+    {% endif %}
+{% endblock %}

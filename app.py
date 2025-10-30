@@ -64,7 +64,6 @@ def buy():
 @app.route("/history", methods=["GET", "POST"])
 @login_required
 def history():
-    """Show name of stock, how many stocks the user purchased, the current price of the stock, the total value and the users money balance"""
     if request.method == "POST":
         user_stocks = db.get_stocks(session["user_id"])
         user = db.find_user(session["user_id"], "id")
@@ -75,7 +74,7 @@ def history():
             current_price = lookup(row["symbol"])
             overall_value = current_price["price"] * row["shares"]
 
-            stock_info.append([row["name"], row["shares"], current_price, overall_value])
+            stock_info.append([row["name"], row["shares"], current_price["price"], overall_value])
 
         return render_template("history.html", reload = False, stocks = stock_info, balance = user["cash"])
     else:
@@ -84,7 +83,6 @@ def history():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    """Log user in"""
     session.clear()
 
     if request.method == "POST":
@@ -155,5 +153,13 @@ def register():
 @app.route("/sell", methods=["GET", "POST"])
 @login_required
 def sell():
-    """Sell shares of stock"""
-    return apology("TODO")
+    if request.method == 'POST':
+        return render_template('sell.html', reload = False)
+    else:
+        user_stocks = db.get_stocks(session["user_id"])
+        user_symbols = []
+
+        for stock in user_stocks:
+            user_symbols.append(stock["symbol"])
+
+        return render_template('sell.html', reload = True, symbols = user_symbols)
