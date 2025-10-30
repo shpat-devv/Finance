@@ -30,7 +30,7 @@ class Database:
         
         query = f"SELECT * FROM users WHERE {table} = ?"
         res = self.cursor.execute(query, (value,))
-        return res.fetchall()
+        return res.fetchone()
 
     def insert_user(self, username, hash): 
         if not self.connection:
@@ -62,7 +62,11 @@ class Database:
         if not self.connection:
             print("Not connected to any database")
             return
-        query = "FROM stocks SELECT "
+
+        query = "SELECT * FROM stocks WHERE user_id = ?"
+        res = self.cursor.execute(query, (user_id,))
+
+        return res.fetchall()        
 
     def delete(self, id, table):
         if not self.connection:

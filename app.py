@@ -37,8 +37,6 @@ def index():
     return render_template("index.html")
 
 
-
-#calculate the price, check if user can buy, add to database
 @app.route("/buy", methods=["GET", "POST"])
 @login_required
 def buy():
@@ -48,10 +46,10 @@ def buy():
             cost = lookup(request.form.get("symbol"))["price"] * int(request.form.get("shares"))
             user = db.find_user(session["user_id"], "id")
 
-            if cost > int(user[0]["cash"]):
+            if cost > int(user["cash"]):
                 return apology("you dont have enough money")
             
-            db.update_user(session["user_id"], "cash", int(user[0]["cash"]) - cost)
+            db.update_user(session["user_id"], "cash", int(user["cash"]) - cost)
 
             stock_data = lookup(request.form.get("symbol"))
             db.insert_stock(stock_data["name"], stock_data["price"], stock_data["symbol"], request.form.get("shares"), session["user_id"])
@@ -63,11 +61,25 @@ def buy():
     return render_template("buy.html")
 
 
-@app.route("/history")
+@app.route("/history", methods=["GET", "POST"])
 @login_required
 def history():
     """Show name of stock, how many stocks the user purchased, the current price of the stock, the total value and the users money balance"""
-    return apology("TODO")
+    if request.method == "POST":
+        user_stocks = db.get_stocks(session["user_id"])
+        user = db.find_user(session["user_id"], "id")
+        
+        stock_info = []
+
+        for row in user_stocks:
+            current_price = lookup(row["symbol"])
+            overall_value = current_price["price"] * row["shares"]
+
+            stock_info.append([row["name"], row["shares"], current_price, overall_value])
+
+        return render_template("history.html", reload = False, stocks = stock_info, balance = user["cash"])
+    else:
+        return render_template("history.html", reload = True)
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -82,15 +94,15 @@ def login():
         elif not request.form.get("password"):
             return apology("must provide password", 403)
 
-        rows = db.find_user(request.form.get("username"), "username") #actual username and table name
+        user = db.find_user(request.form.get("username"), "username") #actual username and table name
 
-        if len(rows) != 1 or not check_password_hash(
-            rows[0]["hash"], request.form.get("password")
+        if not user or not check_password_hash(
+            user["hash"], request.form.get("password")
         ):
             return apology("invalid username and/or password", 403)
 
         # Remember which user has logged in
-        session["user_id"] = rows[0]["id"]
+        session["user_id"] = user["id"]
 
         return redirect("/")
 
