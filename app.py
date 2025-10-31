@@ -18,9 +18,10 @@ app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
-# Configure database (for anyone at harvard checking this, im using my own database handler because im using my local computer to write this and i didn't want to install cs50's library)
+# Configure database
 db = Database("finance.db")
 db.connect()
+
 
 @app.after_request
 def after_request(response):
@@ -41,23 +42,38 @@ def index():
 @login_required
 def buy():
     if request.method == "POST":
-        #add error handling 
-        if request.form.get("symbol") and request.form.get("shares") and int(request.form.get("shares")) > 0:
-            cost = lookup(request.form.get("symbol"))["price"] * int(request.form.get("shares"))
-            user = db.find_user(session["user_id"], "id")
+        symbol = request.form.get("symbol")
+        shares = request.form.get("shares")
 
-            if cost > int(user["cash"]):
-                return apology("you dont have enough money")
-            
-            db.update_table(session["user_id"], "users", "cash", int(user["cash"]) - cost)
-
-            stock_data = lookup(request.form.get("symbol"))
-            db.insert_stock(stock_data["name"], stock_data["price"], stock_data["symbol"], request.form.get("shares"), session["user_id"])
-        
-            return redirect("/")
-        else:
-            print(request.form.get("symbol"), request.form.get("shares"))
+        if not symbol or not shares:
             return apology("form not filled correctly")
+
+        try:
+            shares = int(shares)
+            if shares <= 0:
+                return apology("shares must be positive")
+        except ValueError:
+            return apology("shares must be an integer")
+
+        stock_data = lookup(symbol)
+        if not stock_data:
+            return apology("invalid symbol")
+
+        cost = stock_data["price"] * shares
+        user = db.find_user(session["user_id"], "id")
+
+        if cost > user["cash"]:
+            return apology("you don't have enough money")
+
+        # update user cash 
+        new_cash = user["cash"] - cost
+        db.update_table(session["user_id"], "users", "cash", new_cash)
+        db.insert_stock(stock_data["name"], stock_data["price"], stock_data["symbol"], shares, session["user_id"])
+
+        # add transaction
+        stock_id = db.get_last("stocks", "id")
+        db.insert_transaction(stock_id["id"])
+        return redirect("/")
     return render_template("buy.html")
 
 
@@ -67,18 +83,23 @@ def history():
     if request.method == "POST":
         user_stocks = db.get_stocks(session["user_id"], "*")
         user = db.find_user(session["user_id"], "id")
-        
+
         stock_info = []
 
         for row in user_stocks:
             current_price = lookup(row["symbol"])
             overall_value = current_price["price"] * row["shares"]
 
-            stock_info.append([row["name"], row["shares"], current_price["price"], overall_value])
+            stock_info.append([
+                row["name"],
+                row["shares"],
+                usd(current_price["price"]),
+                usd(overall_value)
+            ])
 
-        return render_template("history.html", reload = False, stocks = stock_info, balance = user["cash"])
+        return render_template("history.html", reload=False, stocks=stock_info, balance=usd(user["cash"]))
     else:
-        return render_template("history.html", reload = True)
+        return render_template("history.html", reload=True)
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -86,26 +107,23 @@ def login():
     session.clear()
 
     if request.method == "POST":
-        if not request.form.get("username"):
-            return apology("must provide username", 403)
+        username = request.form.get("username")
+        password = request.form.get("password")
 
-        elif not request.form.get("password"):
+        if not username:
+            return apology("must provide username", 403)
+        if not password:
             return apology("must provide password", 403)
 
-        user = db.find_user(request.form.get("username"), "username") #actual username and table name
+        user = db.find_user(username, "username")
 
-        if not user or not check_password_hash(
-            user["hash"], request.form.get("password")
-        ):
+        if not user or not check_password_hash(user["hash"], password):
             return apology("invalid username and/or password", 403)
 
-        # Remember which user has logged in
         session["user_id"] = user["id"]
-
         return redirect("/")
 
-    else:
-        return render_template("login.html")
+    return render_template("login.html")
 
 
 @app.route("/logout")
@@ -113,76 +131,91 @@ def logout():
     session.clear()
     return redirect("/")
 
+
 @app.route("/quote", methods=["GET", "POST"])
 @login_required
 def quote():
     if request.method == "POST":
-        if request.form.get("symbol"):  
-            quote_data = lookup(request.form.get("symbol"))
-            if quote_data:
-                return render_template("quote.html", quotes = quote_data)
-            else:
-                return apology("couldn't get quotes")
-        else:
-            return apology("symbol not passed in")
-    else:
-        return render_template("quote.html")
+        symbol = request.form.get("symbol")
+        if not symbol:
+            return apology("symbol not provided")
 
-#add password confirmation, login automatically
+        quote_data = lookup(symbol)
+        if not quote_data:
+            return apology("couldn't get quotes")
+
+        # Pass formatted data to front-end
+        quote_data["price"] = usd(quote_data["price"])
+        return render_template("quote.html", quotes=quote_data)
+
+    return render_template("quote.html")
+
+
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == 'POST':
-        if not request.form.get("username"):
-            return apology("must provide username", 403)
+        username = request.form.get("username")
+        password = request.form.get("password")
+        confirmation = request.form.get("confirmation")
 
-        elif not request.form.get("password"):
+        if not username:
+            return apology("must provide username", 403)
+        if not password or not confirmation:
             return apology("must provide password", 403)
-        
-        if db.find_user(request.form.get("username"), "username"):
+        if password != confirmation:
+            return apology("passwords don't match", 403)
+        if db.find_user(username, "username"):
             return apology("username already exists", 403)
 
-        #users by default start with 10k in cash
-        db.insert_user(request.form.get("username"), generate_password_hash(request.form.get("password")))
-
+        db.insert_user(username, generate_password_hash(password), 10000.0)
         return redirect("/login")
 
-    else:
-        return render_template("register.html")
+    return render_template("register.html")
 
 
 @app.route("/sell", methods=["GET", "POST"])
 @login_required
 def sell():
     if request.method == 'POST':
-        if not request.form.get("symbol"):
-            return apology("must provide symbol", 403)
+        symbol = request.form.get("symbol")
+        shares = request.form.get("shares")
 
-        elif not request.form.get("shares"):
+        if not symbol:
+            return apology("must provide symbol", 403)
+        if not shares:
             return apology("must provide shares", 403)
-        
-        try: #use try statement to prevent crashes when value is not int
-            if int(request.form.get("shares")) <= 0:
+
+        try:
+            shares = int(shares)
+            if shares <= 0:
                 return apology("quantity must be higher than 0")
-        except:
+        except ValueError:
             return apology("please select a number for shares", 403)
-        
+
         user_stocks = db.get_stocks(session["user_id"], "symbol, shares")
+        user = db.find_user(session["user_id"], "id")
 
         for stock in user_stocks:
-            if request.form.get("symbol") == stock["symbol"] and int(request.form.get("shares")) <= stock["shares"]:
-                user_cash = lookup(request.form.get("symbol"))["price"] * int(request.form.get("shares"))
-                user_shares = stock["shares"] - int(request.form.get("shares"))
-                db.update_table(session["user_id"], "users", "cash", user_cash) #update cash
-                db.update_table(session["user_id"], "stocks", "shares", user_shares) #update shares
+            if symbol == stock["symbol"] and shares <= stock["shares"]:
+                sale_value = lookup(symbol)["price"] * shares
+                new_cash = user["cash"] + sale_value
+                remaining_shares = stock["shares"] - shares
+
+                # Update user's cash
+                db.update_table(session["user_id"], "users", "cash", new_cash)
+
+                # Update stock record
+                db.cursor.execute(
+                    "UPDATE stocks SET shares = ? WHERE user_id = ? AND symbol = ?",
+                    (remaining_shares, session["user_id"], symbol)
+                )
+                db.connection.commit()
 
                 return redirect("/")
 
-        return render_template('sell.html', reload = False)
+        return apology("you don't own that many shares", 403)
+
     else:
         user_stocks = db.get_stocks(session["user_id"], "symbol")
-        user_symbols = []
-
-        for stock in user_stocks:
-            user_symbols.append(stock["symbol"])
-
-        return render_template('sell.html', reload = True, symbols = user_symbols)
+        user_symbols = [stock["symbol"] for stock in user_stocks]
+        return render_template('sell.html', reload=True, symbols=user_symbols)

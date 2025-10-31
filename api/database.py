@@ -32,11 +32,10 @@ class Database:
         res = self.cursor.execute(query, (value,))
         return res.fetchone()
 
-    def insert_user(self, username, hash): 
+    def insert_user(self, username, hash, cash): 
         if not self.connection:
             print("Not connected to any database.")
             return
-        cash = 10000
         query = "INSERT INTO users (username, hash, cash) VALUES (?, ?, ?)"
         self.cursor.execute(query, (username, hash, cash))
         self.connection.commit()
@@ -50,6 +49,14 @@ class Database:
         self.cursor.execute(query, (name, price, symbol, shares, user_id)) 
         self.connection.commit()
         print(f"Inserted {name} into database")
+
+    def insert_transaction(self, stock_id):
+        if not self.connection:
+            print("Not connected to any database")
+            return
+        query = "INSERT INTO transactions (stock_id) VALUES (?)"
+        self.cursor.execute(query, (stock_id,))
+        self.connection.commit()
 
     def get_stocks(self, user_id, columns):
         if not self.connection:
@@ -81,5 +88,14 @@ class Database:
         query = f"UPDATE {table} SET {columns} = ? WHERE id = ?"
         self.cursor.execute(query, (new_value, id))
         self.connection.commit()
+
+    def get_last(self, table, columns): #mostly written cause i needed something to get the last added stock_id 
+        if not self.connection:
+            print("Not connected to any database.")
+            return
+        query = f"SELECT {columns} FROM {table} ORDER BY ID DESC LIMIT 1" 
+        res = self.cursor.execute(query)
+        return res.fetchone()
+        
 
 
