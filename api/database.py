@@ -23,12 +23,12 @@ class Database:
         else: 
             print("No connection")
 
-    def find_user(self, value, table):
+    def find_user(self, value, column):
         if not self.connection:
             print("Not connected to any database.")
             return
         
-        query = f"SELECT * FROM users WHERE {table} = ?"
+        query = f"SELECT * FROM users WHERE {column} = ?"
         res = self.cursor.execute(query, (value,))
         return res.fetchone()
 
@@ -42,13 +42,6 @@ class Database:
         self.connection.commit()
         print(f"Inserted {username} to database")
 
-    def update_user(self, id, row, new_value):
-        if not self.connection:
-            print("Not connected to any database.")
-            return
-        query = f"UPDATE users SET {row} = ? WHERE id = ?"
-        self.cursor.execute(query, (new_value, id))
-
     def insert_stock(self, name, price, symbol, shares, user_id): #i could've made a function that can insert into both the users and the stocks table but eh, maybe later
         if not self.connection:
             print("Not connected to any database")
@@ -58,15 +51,14 @@ class Database:
         self.connection.commit()
         print(f"Inserted {name} into database")
 
-    def get_stocks(self, user_id):
+    def get_stocks(self, user_id, columns):
         if not self.connection:
             print("Not connected to any database")
             return
 
-        query = "SELECT * FROM stocks WHERE user_id = ?"
+        query = f"SELECT {columns} FROM stocks WHERE user_id = ?"
         res = self.cursor.execute(query, (user_id,))
-
-        return res.fetchall()        
+        return res.fetchall() 
 
     def delete(self, id, table):
         if not self.connection:
@@ -81,5 +73,13 @@ class Database:
             print(f"No record with user_id {id} found in {table}")
         else:
             print(f"Deleted record with user_id {id} from {table}")
+
+    def update_table(self, id, table, columns, new_value):
+        if not self.connection:
+            print("Not connected to any database.")
+            return
+        query = f"UPDATE {table} SET {columns} = ? WHERE id = ?"
+        self.cursor.execute(query, (new_value, id))
+        self.connection.commit()
 
 

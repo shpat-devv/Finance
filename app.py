@@ -49,7 +49,7 @@ def buy():
             if cost > int(user["cash"]):
                 return apology("you dont have enough money")
             
-            db.update_user(session["user_id"], "cash", int(user["cash"]) - cost)
+            db.update_table(session["user_id"], "users", "cash", int(user["cash"]) - cost)
 
             stock_data = lookup(request.form.get("symbol"))
             db.insert_stock(stock_data["name"], stock_data["price"], stock_data["symbol"], request.form.get("shares"), session["user_id"])
@@ -65,7 +65,7 @@ def buy():
 @login_required
 def history():
     if request.method == "POST":
-        user_stocks = db.get_stocks(session["user_id"])
+        user_stocks = db.get_stocks(session["user_id"], "*")
         user = db.find_user(session["user_id"], "id")
         
         stock_info = []
@@ -154,9 +154,32 @@ def register():
 @login_required
 def sell():
     if request.method == 'POST':
+        if not request.form.get("symbol"):
+            return apology("must provide symbol", 403)
+
+        elif not request.form.get("shares"):
+            return apology("must provide shares", 403)
+        
+        try: #use try statement to prevent crashes when value is not int
+            if int(request.form.get("shares")) <= 0:
+                return apology("quantity must be higher than 0")
+        except:
+            return apology("please select a number for shares", 403)
+        
+        user_stocks = db.get_stocks(session["user_id"], "symbol, shares")
+
+        for stock in user_stocks:
+            if request.form.get("symbol") == stock["symbol"] and int(request.form.get("shares")) <= stock["shares"]:
+                user_cash = lookup(request.form.get("symbol"))["price"] * int(request.form.get("shares"))
+                user_shares = stock["shares"] - int(request.form.get("shares"))
+                db.update_table(session["user_id"], "users", "cash", user_cash) #update cash
+                db.update_table(session["user_id"], "stocks", "shares", user_shares) #update shares
+
+                return redirect("/")
+
         return render_template('sell.html', reload = False)
     else:
-        user_stocks = db.get_stocks(session["user_id"])
+        user_stocks = db.get_stocks(session["user_id"], "symbol")
         user_symbols = []
 
         for stock in user_stocks:
