@@ -50,20 +50,20 @@ class Database:
         self.connection.commit()
         print(f"Inserted {name} into database")
 
-    def insert_transaction(self, stock_id):
+    def insert_transaction(self, t_type, symbol, price, shares, user_id): #called it t_type to avoid syntax confusion
         if not self.connection:
             print("Not connected to any database")
             return
-        query = "INSERT INTO transactions (stock_id) VALUES (?)"
-        self.cursor.execute(query, (stock_id,))
+        query = "INSERT INTO transactions (type, symbol, price, shares, user_id) VALUES (?, ?, ?, ?, ?)"
+        self.cursor.execute(query, (t_type, symbol, price, shares, user_id))
         self.connection.commit()
 
-    def get_stocks(self, user_id, columns):
+    def get_data(self, user_id, table, columns): #this serves for stock/transaction related data
         if not self.connection:
             print("Not connected to any database")
             return
 
-        query = f"SELECT {columns} FROM stocks WHERE user_id = ?"
+        query = f"SELECT {columns} FROM {table} WHERE user_id = ?"
         res = self.cursor.execute(query, (user_id,))
         return res.fetchall() 
 
@@ -72,30 +72,20 @@ class Database:
             print("Not connected to any database.")
             return
 
-        query = f"DELETE FROM {table} WHERE user_id = ?"
+        query = f"DELETE FROM {table} WHERE id = ?"
         self.cursor.execute(query, (id,))
         self.connection.commit()
 
-        if self.cursor.rowcount == 0:
-            print(f"No record with user_id {id} found in {table}")
+    def update_table(self, id, table, columns, new_value, symbol=False):
+        if not self.connection:
+            print("Not connected to any database.")
+            return
+        query = ""
+        if symbol:
+            query = f"UPDATE {table} SET {columns} = ? WHERE id = ? AND WHERE symbol = ?"
+            self.cursor.execute(query, (new_value, id, symbol))
+
         else:
-            print(f"Deleted record with user_id {id} from {table}")
-
-    def update_table(self, id, table, columns, new_value):
-        if not self.connection:
-            print("Not connected to any database.")
-            return
-        query = f"UPDATE {table} SET {columns} = ? WHERE id = ?"
-        self.cursor.execute(query, (new_value, id))
+            query = f"UPDATE {table} SET {columns} = ? WHERE id = ?"
+            self.cursor.execute(query, (new_value, id))
         self.connection.commit()
-
-    def get_last(self, table, columns): #mostly written cause i needed something to get the last added stock_id 
-        if not self.connection:
-            print("Not connected to any database.")
-            return
-        query = f"SELECT {columns} FROM {table} ORDER BY ID DESC LIMIT 1" 
-        res = self.cursor.execute(query)
-        return res.fetchone()
-        
-
-

@@ -32,10 +32,34 @@ def after_request(response):
     return response
 
 
-@app.route("/")
+@app.route("/", methods=["GET", "POST"])
 @login_required
 def index():
-    return render_template("index.html")
+    if request.method == "POST":
+        user_stocks = db.get_data(session["user_id"], "stocks", "*")
+        user = db.find_user(session["user_id"], "id")
+
+        stock_info = []
+        stock_money = 0
+
+        for row in user_stocks:
+            current_price = lookup(row["symbol"])
+            overall_value = current_price["price"] * row["shares"]
+            
+            stock_money += overall_value
+
+            stock_info.append([
+                row["name"],
+                row["shares"],
+                usd(current_price["price"]),
+                usd(overall_value)
+            ])
+        
+        grand_total = user["cash"] + stock_money
+
+        return render_template("index.html", reload=False, stocks=stock_info, balance=usd(user["cash"]), total = grand_total)
+    else:
+        return render_template("index.html", reload=True)
 
 
 @app.route("/buy", methods=["GET", "POST"])
@@ -69,37 +93,29 @@ def buy():
         new_cash = user["cash"] - cost
         db.update_table(session["user_id"], "users", "cash", new_cash)
         db.insert_stock(stock_data["name"], stock_data["price"], stock_data["symbol"], shares, session["user_id"])
+        db.insert_transaction("buy", symbol, stock_data["price"], shares, session["user_id"])
 
-        # add transaction
-        stock_id = db.get_last("stocks", "id")
-        db.insert_transaction(stock_id["id"])
         return redirect("/")
     return render_template("buy.html")
 
 
-@app.route("/history", methods=["GET", "POST"])
+@app.route("/history", methods=["GET"])
 @login_required
 def history():
-    if request.method == "POST":
-        user_stocks = db.get_stocks(session["user_id"], "*")
-        user = db.find_user(session["user_id"], "id")
+    if request.method == "GET":
+        transactions_raw = db.get_data(session["user_id"], "transactions", "*")
+        transaction_info = []
 
-        stock_info = []
-
-        for row in user_stocks:
-            current_price = lookup(row["symbol"])
-            overall_value = current_price["price"] * row["shares"]
-
-            stock_info.append([
-                row["name"],
-                row["shares"],
-                usd(current_price["price"]),
-                usd(overall_value)
+        for transaction in transactions_raw:
+            transaction_info.append([
+                transaction["type"],
+                transaction["symbol"],
+                transaction["price"],
+                transaction["shares"],
+                transaction["time"],
             ])
-
-        return render_template("history.html", reload=False, stocks=stock_info, balance=usd(user["cash"]))
-    else:
-        return render_template("history.html", reload=True)
+        return render_template("history.html", reload = False, transactions = transaction_info)
+    return render_template("history.html", reload = True)
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -123,8 +139,8 @@ def login():
         session["user_id"] = user["id"]
         return redirect("/")
 
-    return render_template("login.html")
 
+    return render_template("login.html")
 
 @app.route("/logout")
 def logout():
@@ -192,30 +208,29 @@ def sell():
         except ValueError:
             return apology("please select a number for shares", 403)
 
-        user_stocks = db.get_stocks(session["user_id"], "symbol, shares")
+        user_stocks = db.get_data(session["user_id"], "stocks", "id, symbol, shares")
         user = db.find_user(session["user_id"], "id")
 
         for stock in user_stocks:
             if symbol == stock["symbol"] and shares <= stock["shares"]:
-                sale_value = lookup(symbol)["price"] * shares
+                stock_data = lookup(symbol)
+                sale_value = stock_data["price"] * shares
                 new_cash = user["cash"] + sale_value
                 remaining_shares = stock["shares"] - shares
 
-                # Update user's cash
                 db.update_table(session["user_id"], "users", "cash", new_cash)
+                db.insert_transaction("sell", stock_data["symbol"], stock_data["price"], shares, session["user_id"])
 
-                # Update stock record
-                db.cursor.execute(
-                    "UPDATE stocks SET shares = ? WHERE user_id = ? AND symbol = ?",
-                    (remaining_shares, session["user_id"], symbol)
-                )
-                db.connection.commit()
+                if remaining_shares <= 0:
+                    db.delete(stock["id"], "stocks")
+                else:
+                    db.update_table(session["user_id"], "stocks", "shares", remaining_shares, symbol)
 
                 return redirect("/")
 
         return apology("you don't own that many shares", 403)
 
     else:
-        user_stocks = db.get_stocks(session["user_id"], "symbol")
+        user_stocks = db.get_data(session["user_id"], "stocks", "symbol")
         user_symbols = [stock["symbol"] for stock in user_stocks]
         return render_template('sell.html', reload=True, symbols=user_symbols)

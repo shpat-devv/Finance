@@ -1,27 +1,32 @@
--- Users table
+DROP TABLE users;
+DROP TABLE stocks;
+DROP TABLE transactions;
+
+
 CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-    username TEXT NOT NULL UNIQUE,
-    hash TEXT NOT NULL,
+    username TEXT NOT NULL UNIQUE CHECK(LENGTH(username) <= 50),
+    hash TEXT NOT NULL CHECK(LENGTH(hash) <= 255),
     cash REAL NOT NULL DEFAULT 10000.00
 );
 
--- Stocks table
 CREATE TABLE stocks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
+    name TEXT NOT NULL CHECK(LENGTH(name) <= 100),
     price REAL NOT NULL,
-    symbol TEXT NOT NULL,
+    symbol TEXT NOT NULL CHECK(LENGTH(symbol) <= 10),
     shares INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
--- Transactions table
 CREATE TABLE transactions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    type TEXT NOT NULL CHECK(LENGTH(type) <= 10), 
+    symbol TEXT NOT NULL CHECK(LENGTH(symbol) <= 10),
+    price REAL NOT NULL,
+    shares INTEGER NOT NULL,
     time DATETIME DEFAULT CURRENT_TIMESTAMP,
-    type TEXT NOT NULL,
-    stock_id INTEGER NOT NULL,
-    FOREIGN KEY (stock_id) REFERENCES stocks(id)
+    user_id INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );

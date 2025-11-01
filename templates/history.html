@@ -17,27 +17,22 @@
         </script>
     {% endif %}
 
-    {% if stocks %}
+    {% if transactions %}
         <div class="container mt-4">
-            <h2>Bought stocks</h2>
-            {% for stock in stocks %}
+            <h2>Transactions</h2>
+            {% for transaction in transactions %}
             <ul>
-                <li>Name: {{ stock[0] }}</li>
-                <li>Shares: {{ stock[1] }}</li>
-                <li>Current Price: ${{ stock[2] }}</li>
-                <li>Overall Value: ${{ stock[3] }}</li>
+                <li>Type: {{ transaction[0] }}</li>
+                <li>Symbol: {{ transaction[1] }}</li>
+                <li>Price: {{ transaction[2] }}</li>
+                <li>Shares: {{ transaction[3] }}</li>
+                <li>Time: {{ transaction[4] }}</li>
             </ul>
             {% endfor %}
         </div>
     {% else %}
         <div class="container mt-4">
             <h2>You haven't purchased anything yet</h2>
-        </div>
-    {% endif %}
-    {% if balance %}
-        <div class="container mt-4">
-            <h2>Your Balance</h2>
-            <p>${{ balance }}</p>
         </div>
     {% endif %}
 {% endblock %}
