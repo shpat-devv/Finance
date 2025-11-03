@@ -113,7 +113,7 @@ def sell():
         if not shares:
             return apology("must provide shares", 403)
 
-        try:
+        try: #try block in case of value error
             shares = int(shares)
             if shares <= 0:
                 return apology("quantity must be higher than 0")
@@ -136,7 +136,7 @@ def sell():
                 if remaining_shares <= 0:
                     db.delete(stock["id"], "stocks")
                 else:
-                    db.update_table(session["user_id"], "stocks", "shares", remaining_shares, symbol)
+                    db.update_table(session["user_id"], "stocks", "shares", remaining_shares)
 
                 return redirect("/")
 

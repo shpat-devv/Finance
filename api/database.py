@@ -82,12 +82,7 @@ class Database:
         if not self.connection:
             print("Not connected to any database.")
             return
-        query = ""
-        if symbol:
-            query = f"UPDATE {table} SET {columns} = ? WHERE id = ? AND WHERE symbol = ?"
-            self.cursor.execute(query, (new_value, id, symbol))
 
-        else:
-            query = f"UPDATE {table} SET {columns} = ? WHERE id = ?"
-            self.cursor.execute(query, (new_value, id))
+        query = f"UPDATE {table} SET {columns} = ? WHERE id = ?"
+        self.cursor.execute(query, (new_value, id))
         self.connection.commit()
