@@ -9,6 +9,7 @@ from api.database import Database
 
 # Configure application
 app = Flask(__name__)
+app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Custom filter
 app.jinja_env.filters["usd"] = usd
@@ -265,3 +266,9 @@ def register():
         return redirect("/")
 
     return render_template("register.html")
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
+
