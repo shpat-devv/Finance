@@ -12,19 +12,4 @@
             <button type="submit" class="btn btn-primary">Submit</button>   
         </form>
     </div>
-
-    {% if quotes %}
-        <div class="container mt-4">
-            <h2>Quote Information</h2>
-            <ul>
-                <li>Symbol: {{ quotes.symbol }}</li>
-                <li>Name: {{ quotes.name }}</li>
-                <li>Price: ${{ quotes.price }}</li>
-            </ul>
-        </div>
-    {% else %}
-        <div class="container mt-4">
-            <h2>No Quote Information Available</h2>
-        </div>
-    {% endif %}
 {% endblock %}

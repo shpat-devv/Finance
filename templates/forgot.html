@@ -5,16 +5,16 @@
 {% endblock %}
 
 {% block main %}
-    <form action="/forgot" method="post">
-        <div class="mb-3">
-            <input autocomplete="off" autofocus class="form-control mx-auto w-auto" name="username" placeholder="Username" type="text">
+    <main class="container">
+        <div class="card" style="max-width: 400px; margin: 4rem auto; text-align: center;">
+            <h2>Forgot Password</h2>
+            <form action="/forgot" method="post">
+                <input autocomplete="off" autofocus name="username" placeholder="Username" type="text">
+                <input name="password" placeholder="New Password" type="password">
+                <input name="confirmation" placeholder="Confirm New Password" type="password">
+                <button type="submit">Reset Password</button>
+            </form>
+            <p style="margin-top: 1rem; font-weight: 600;">Already have an account? <a href="/login" style="color: #00d4ff;">Login</a></p>
         </div>
-        <div class="mb-3">
-            <input class="form-control mx-auto w-auto" name="password" placeholder="Password" type="password">
-        </div>
-        <div class="mb-3">
-            <input class="form-control mx-auto w-auto" name="confirmation" placeholder="Confirm Password" type="password">
-        </div>
-        <button class="btn btn-primary" type="submit">Reset Password</button>
-    </form>
+    </main>
 {% endblock %}

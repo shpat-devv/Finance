@@ -5,18 +5,6 @@
 {% endblock %}
 
 {% block main %}
-    <form action="/history" method="post" id="autoForm">
-        <input type="hidden" name="symbol" value="{{ some_symbol }}">
-    </form>
-
-    {% if reload %}
-        <script>
-            document.addEventListener('DOMContentLoaded', () => {
-                document.getElementById('autoForm').submit();
-            });
-        </script>
-    {% endif %}
-
     {% if transactions %}
         <div class="container mt-4">
             <h2>Transactions</h2>
