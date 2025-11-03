@@ -148,6 +148,33 @@ def logout():
     return redirect("/")
 
 
+@app.route("/forgot", methods=["GET", "POST"])
+def pw_reset():
+    session.clear()
+
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        confirmation = request.form.get("confirmation")
+
+        if not username:
+            return apology("must provide username", 403)
+        if not password or not confirmation:
+            return apology("must provide password", 403)
+        if password != confirmation:
+            return apology("passwords don't match", 403)
+        
+        user = db.find_user(username, "username")
+
+        if not user:
+            return apology("username doesn't exists", 403)
+        
+        session["user_id"] = user["id"]
+        return redirect("/")
+
+    return render_template("forgot.html")
+
+
 @app.route("/quote", methods=["GET", "POST"])
 @login_required
 def quote():
@@ -180,11 +207,16 @@ def register():
             return apology("must provide password", 403)
         if password != confirmation:
             return apology("passwords don't match", 403)
-        if db.find_user(username, "username"):
+        
+        user = db.find_user(username, "username")
+
+        if user:
             return apology("username already exists", 403)
 
         db.insert_user(username, generate_password_hash(password), 10000.0)
-        return redirect("/login")
+        user = db.find_user(username, "username") #now that the user exists the database will find them
+        session["user_id"] = user["id"]
+        return redirect("/")
 
     return render_template("register.html")
 

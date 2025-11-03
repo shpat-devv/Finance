@@ -30,7 +30,9 @@ class Database:
         
         query = f"SELECT * FROM users WHERE {column} = ?"
         res = self.cursor.execute(query, (value,))
-        return res.fetchone()
+        if res:
+            return res.fetchone()
+        return None
 
     def insert_user(self, username, hash, cash): 
         if not self.connection:
