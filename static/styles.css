@@ -108,6 +108,7 @@ main.container {
     padding: 1.5rem;
     display: flex;
     color: #ffffff !important;
+    width: 100%;
 }
 
 .info-card h3 {
@@ -126,6 +127,12 @@ main.container {
     justify-content: space-between;
     width: 100%;
     gap: 1rem;
+}
+
+.stock-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
 }
 
 .stock-card {

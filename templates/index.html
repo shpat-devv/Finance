@@ -6,26 +6,21 @@
 
 {% block main %}
     <div class="container mt-4">
-        <div class="row text-center mb-4">
-            <div class="col-md-6 mb-3 mb-md-0">
-                <div class="info-card">
-                    <div class="info-section">
-                        <h3>Balance</h3>
-                        <p>{{ balance }}</p>
-                    </div>
-                    <div class="info-section">
-                        <h3>Total Value</h3>
-                        <p>{{ total }}</p>
-                    </div>
-                </div>
+        <div class="info-card">
+            <div class="info-section">
+                <h3>Balance</h3>
+                <p>{{ balance }}</p>
+            </div>
+            <div class="info-section">
+                <h3>Total Value</h3>
+                <p>{{ total }}</p>
             </div>
         </div>
 
         {% if stocks %}
             <h2 class="mb-3">Bought Stocks</h2>
-            <div class="row">
+            <div class="stock-container">
                 {% for stock in stocks %}
-                <div class="col-md-6 col-lg-4 mb-4">
                     <div class="stock-card">
                         <h4>{{ stock[0] }}</h4>
                         <ul>
@@ -34,7 +29,6 @@
                             <li><span>Overall Value:</span><span>{{ stock[3] }}</span></li>
                         </ul>
                     </div>
-                </div>
                 {% endfor %}
             </div>
         {% else %}
