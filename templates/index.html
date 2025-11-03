@@ -5,21 +5,9 @@
 {% endblock %}
 
 {% block main %}
-    <form action="/" method="post" id="autoForm">
-        <input type="hidden" name="symbol" value="{{ some_symbol }}">
-    </form>
-
-    {% if reload %}
-        <script>
-            document.addEventListener('DOMContentLoaded', () => {
-                document.getElementById('autoForm').submit();
-            });
-        </script>
-    {% endif %}
-
     {% if stocks %}
         <div class="container mt-4">
-            <h2>Bought stocks</h2>
+            <h2>Bought Stocks</h2>
             {% for stock in stocks %}
             <ul>
                 <li>Name: {{ stock[0] }}</li>
@@ -34,10 +22,16 @@
             <h2>You haven't purchased anything yet</h2>
         </div>
     {% endif %}
-    {% if balance %}
+
+    <div class="container mt-4">
+        <h2>Cash</h2>
+        <p>{{ balance }}</p>
+    </div>
+
+    {% if total %}
         <div class="container mt-4">
-            <h2>Your Balance</h2>
-            <p>{{ balance }}</p>
+            <h2>Total Value</h2>
+            <p>{{ total }}</p>
         </div>
     {% endif %}
 {% endblock %}

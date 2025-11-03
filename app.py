@@ -13,7 +13,7 @@ app = Flask(__name__)
 # Custom filter
 app.jinja_env.filters["usd"] = usd
 
-# Configure session to use filesystem (instead of signed cookies)
+# Configure session to use filesystem
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
@@ -32,34 +32,35 @@ def after_request(response):
     return response
 
 
-@app.route("/", methods=["GET", "POST"])
+@app.route("/", methods=["GET"])
 @login_required
 def index():
-    if request.method == "POST":
-        user_stocks = db.get_data(session["user_id"], "stocks", "*")
-        user = db.find_user(session["user_id"], "id")
+    user_stocks = db.get_data(session["user_id"], "stocks", "*")
+    user = db.find_user(session["user_id"], "id")
 
-        stock_info = []
-        stock_money = 0
+    stock_info = []
+    stock_money = 0
 
-        for row in user_stocks:
-            current_price = lookup(row["symbol"])
-            overall_value = current_price["price"] * row["shares"]
-            
-            stock_money += overall_value
+    for row in user_stocks:
+        current_price = lookup(row["symbol"])
+        overall_value = current_price["price"] * row["shares"]
+        stock_money += overall_value
+        stock_info.append([
+            row["name"],
+            row["shares"],
+            usd(current_price["price"]),
+            usd(overall_value)
+        ])
 
-            stock_info.append([
-                row["name"],
-                row["shares"],
-                usd(current_price["price"]),
-                usd(overall_value)
-            ])
-        
-        grand_total = user["cash"] + stock_money
+    grand_total = user["cash"] + stock_money
 
-        return render_template("index.html", reload=False, stocks=stock_info, balance=usd(user["cash"]), total = grand_total)
-    else:
-        return render_template("index.html", reload=True)
+    return render_template(
+        "index.html",
+        stocks=stock_info,
+        balance=usd(user["cash"]),
+        total=usd(grand_total) 
+    )
+
 
 
 @app.route("/buy", methods=["GET", "POST"])
@@ -89,142 +90,20 @@ def buy():
         if cost > user["cash"]:
             return apology("you don't have enough money")
 
-        # update user cash 
         new_cash = user["cash"] - cost
         db.update_table(session["user_id"], "users", "cash", new_cash)
         db.insert_stock(stock_data["name"], stock_data["price"], stock_data["symbol"], shares, session["user_id"])
         db.insert_transaction("buy", symbol, stock_data["price"], shares, session["user_id"])
 
         return redirect("/")
+
     return render_template("buy.html")
-
-
-@app.route("/history", methods=["GET"])
-@login_required
-def history():
-    if request.method == "GET":
-        transactions_raw = db.get_data(session["user_id"], "transactions", "*")
-        transaction_info = []
-
-        for transaction in transactions_raw:
-            transaction_info.append([
-                transaction["type"],
-                transaction["symbol"],
-                transaction["price"],
-                transaction["shares"],
-                transaction["time"],
-            ])
-        return render_template("history.html", reload = False, transactions = transaction_info)
-    return render_template("history.html", reload = True)
-
-
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    session.clear()
-
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-
-        if not username:
-            return apology("must provide username", 403)
-        if not password:
-            return apology("must provide password", 403)
-
-        user = db.find_user(username, "username")
-
-        if not user or not check_password_hash(user["hash"], password):
-            return apology("invalid username and/or password", 403)
-
-        session["user_id"] = user["id"]
-        return redirect("/")
-
-
-    return render_template("login.html")
-
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect("/")
-
-
-@app.route("/forgot", methods=["GET", "POST"])
-def pw_reset():
-    session.clear()
-
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-        confirmation = request.form.get("confirmation")
-
-        if not username:
-            return apology("must provide username", 403)
-        if not password or not confirmation:
-            return apology("must provide password", 403)
-        if password != confirmation:
-            return apology("passwords don't match", 403)
-        
-        user = db.find_user(username, "username")
-
-        if not user:
-            return apology("username doesn't exists", 403)
-        
-        session["user_id"] = user["id"]
-        return redirect("/")
-
-    return render_template("forgot.html")
-
-
-@app.route("/quote", methods=["GET", "POST"])
-@login_required
-def quote():
-    if request.method == "POST":
-        symbol = request.form.get("symbol")
-        if not symbol:
-            return apology("symbol not provided")
-
-        quote_data = lookup(symbol)
-        if not quote_data:
-            return apology("couldn't get quotes")
-
-        # Pass formatted data to front-end
-        quote_data["price"] = usd(quote_data["price"])
-        return render_template("quote.html", quotes=quote_data)
-
-    return render_template("quote.html")
-
-
-@app.route("/register", methods=["GET", "POST"])
-def register():
-    if request.method == 'POST':
-        username = request.form.get("username")
-        password = request.form.get("password")
-        confirmation = request.form.get("confirmation")
-
-        if not username:
-            return apology("must provide username", 403)
-        if not password or not confirmation:
-            return apology("must provide password", 403)
-        if password != confirmation:
-            return apology("passwords don't match", 403)
-        
-        user = db.find_user(username, "username")
-
-        if user:
-            return apology("username already exists", 403)
-
-        db.insert_user(username, generate_password_hash(password), 10000.0)
-        user = db.find_user(username, "username") #now that the user exists the database will find them
-        session["user_id"] = user["id"]
-        return redirect("/")
-
-    return render_template("register.html")
 
 
 @app.route("/sell", methods=["GET", "POST"])
 @login_required
 def sell():
-    if request.method == 'POST':
+    if request.method == "POST":
         symbol = request.form.get("symbol")
         shares = request.form.get("shares")
 
@@ -262,7 +141,125 @@ def sell():
 
         return apology("you don't own that many shares", 403)
 
-    else:
-        user_stocks = db.get_data(session["user_id"], "stocks", "symbol")
-        user_symbols = [stock["symbol"] for stock in user_stocks]
-        return render_template('sell.html', reload=True, symbols=user_symbols)
+    user_stocks = db.get_data(session["user_id"], "stocks", "symbol")
+    user_symbols = [stock["symbol"] for stock in user_stocks]
+    return render_template("sell.html", symbols=user_symbols)
+
+
+@app.route("/history")
+@login_required
+def history():
+    transactions_raw = db.get_data(session["user_id"], "transactions", "*")
+    transaction_info = []
+
+    for t in transactions_raw:
+        transaction_info.append([
+            t["type"],
+            t["symbol"],
+            usd(t["price"]),
+            t["shares"],
+            t["time"],
+        ])
+
+    return render_template("history.html", transactions=transaction_info)
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    session.clear()
+
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+
+        if not username:
+            return apology("must provide username", 403)
+        if not password:
+            return apology("must provide password", 403)
+
+        user = db.find_user(username, "username")
+
+        if not user or not check_password_hash(user["hash"], password):
+            return apology("invalid username and/or password", 403)
+
+        session["user_id"] = user["id"]
+        return redirect("/")
+
+    return render_template("login.html")
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/")
+
+
+@app.route("/forgot", methods=["GET", "POST"])
+def pw_reset():
+    session.clear()
+
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        confirmation = request.form.get("confirmation")
+
+        if not username:
+            return apology("must provide username", 403)
+        if not password or not confirmation:
+            return apology("must provide password", 403)
+        if password != confirmation:
+            return apology("passwords don't match", 403)
+
+        user = db.find_user(username, "username")
+
+        if not user:
+            return apology("username doesn't exist", 403)
+
+        session["user_id"] = user["id"]
+        return redirect("/")
+
+    return render_template("forgot.html")
+
+
+@app.route("/quote", methods=["GET", "POST"])
+@login_required
+def quote():
+    if request.method == "POST":
+        symbol = request.form.get("symbol")
+        if not symbol:
+            return apology("symbol not provided")
+
+        quote_data = lookup(symbol)
+        if not quote_data:
+            return apology("couldn't get quotes")
+
+        quote_data["price"] = usd(quote_data["price"])
+        return render_template("quote.html", quotes=quote_data)
+
+    return render_template("quote.html")
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        confirmation = request.form.get("confirmation")
+
+        if not username:
+            return apology("must provide username", 400)
+        if not password or not confirmation:
+            return apology("must provide password", 400)
+        if password != confirmation:
+            return apology("passwords don't match", 400)
+
+        user = db.find_user(username, "username")
+        if user:
+            return apology("username already exists", 400)
+
+        db.insert_user(username, generate_password_hash(password), 10000.0)
+        user = db.find_user(username, "username")
+        session["user_id"] = user["id"]
+        return redirect("/")
+
+    return render_template("register.html")
