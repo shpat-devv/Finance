@@ -5,33 +5,42 @@
 {% endblock %}
 
 {% block main %}
-    {% if stocks %}
-        <div class="container mt-4">
-            <h2>Bought Stocks</h2>
-            {% for stock in stocks %}
-            <ul>
-                <li>Name: {{ stock[0] }}</li>
-                <li>Shares: {{ stock[1] }}</li>
-                <li>Current Price: {{ stock[2] }}</li>
-                <li>Overall Value: {{ stock[3] }}</li>
-            </ul>
-            {% endfor %}
-        </div>
-    {% else %}
-        <div class="container mt-4">
-            <h2>You haven't purchased anything yet</h2>
-        </div>
-    {% endif %}
-
     <div class="container mt-4">
-        <h2>Cash</h2>
-        <p>{{ balance }}</p>
-    </div>
-
-    {% if total %}
-        <div class="container mt-4">
-            <h2>Total Value</h2>
-            <p>{{ total }}</p>
+        <div class="row text-center mb-4">
+            <div class="col-md-6 mb-3 mb-md-0">
+                <div class="info-card">
+                    <div class="info-section">
+                        <h3>Balance</h3>
+                        <p>{{ balance }}</p>
+                    </div>
+                    <div class="info-section">
+                        <h3>Total Value</h3>
+                        <p>{{ total }}</p>
+                    </div>
+                </div>
+            </div>
         </div>
-    {% endif %}
+
+        {% if stocks %}
+            <h2 class="mb-3">Bought Stocks</h2>
+            <div class="row">
+                {% for stock in stocks %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="stock-card">
+                        <h4>{{ stock[0] }}</h4>
+                        <ul>
+                            <li><span>Shares:</span><span>{{ stock[1] }}</span></li>
+                            <li><span>Current Price:</span><span>{{ stock[2] }}</span></li>
+                            <li><span>Overall Value:</span><span>{{ stock[3] }}</span></li>
+                        </ul>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state text-center mt-5">
+                <h2>You haven't purchased anything yet</h2>
+            </div>
+        {% endif %}
+    </div>
 {% endblock %}
