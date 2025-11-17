@@ -58,7 +58,7 @@ def index():
         "index.html",
         stocks=stock_info,
         balance=usd(user["cash"]),
-        total=usd(grand_total) 
+        total=usd(grand_total)
     )
 
 
